@@ -201,6 +201,8 @@ void execute_command(char **arg, char *inputf, char *outputf, int ispipe) {
         // parent
         waitpid(pid, NULL, 0); // waits for child process
     }
+}
+
 void input_to_command_execution(char *i) {
     char **arg = NULL;
     // parsing command (sample method). can change this later.
