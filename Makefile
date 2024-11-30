@@ -2,6 +2,12 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
 
+# Source files
+SOURCES = myshell.c arraylist.c
+
+# Object files
+OBJECTS = $(SOURCES:.c=.o)
+
 # Target executable
 TARGET = myshell
 
@@ -9,9 +15,13 @@ TARGET = myshell
 all: $(TARGET)
 
 # Compile target
-$(TARGET): myshell.c
-	$(CC) $(CFLAGS) -o $(TARGET) myshell.c
+$(TARGET): $(OBJECTS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS)
+
+# Rule for object files
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Clean up build files
 clean:
-	rm -f $(TARGET)
+	rm -f $(OBJECTS) $(TARGET)

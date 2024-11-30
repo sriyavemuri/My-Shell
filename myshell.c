@@ -7,10 +7,140 @@
 #include <string.h>
 #include <errno.h>
 #include <dirent.h>
+#include <glob.h>
+#include "arraylist.h"
+#include <ctype.h>
 
 // PART ONE: READING THE INPUT STRINGS
+typedef struct {
+	int fd;
+	size_t current;     // Current position in the buffer.
+    size_t length;     // Number of valid bytes in the buffer.
+    char buffer[1024]; // Fixed-size buffer for reading.
+} data;
 
+char* readAndGetLine(data* stream) {
+    if (!stream || stream->fd < 0) {
+        return NULL; // Invalid stream
+    }
+
+    char* line = NULL; // Accumulated line
+    size_t line_length = 0;
+    size_t line_capacity = 128; // Initial capacity for the line
+
+    line = malloc(line_capacity * sizeof(char));
+    if (!line) {
+        perror("Failed to allocate memory for line");
+        return NULL;
+    }
+
+    while (1) {
+        // If the buffer is exhausted, refill it
+        if (stream->current == stream->length) {
+            stream->length = read(stream->fd, stream->buffer, sizeof(stream->buffer));
+            if (stream->length == 0) { // End of file
+                if (line_length == 0) { // No data read for the line
+                    free(line);
+                    return NULL;
+                }
+                line[line_length] = '\0';
+                return line;
+            } else if (stream->length == (size_t)-1) { // Error
+                perror("Error reading from stream");
+                free(line);
+                return NULL;
+            }
+            stream->current = 0; // Reset position
+        }
+
+        // Process characters in the buffer
+        while (stream->current < stream->length) {
+            char c = stream->buffer[stream->current++];
+            if (c == '\n') { // Line complete
+                line[line_length] = '\0';
+                return line;
+            }
+            // Expand memory if line capacity is reached
+            if (line_length + 1 >= line_capacity) {
+                line_capacity *= 2;
+                line = realloc(line, line_capacity * sizeof(char));
+                if (!line) {
+                    perror("Failed to reallocate memory for line");
+                    return NULL;
+                }
+            }
+            line[line_length++] = c;
+        }
+    }
+}
 // PART TWO: PARSING COMMANDS
+arraylist_t *tokenize(char *line, char ***all_strings) {
+    if (!line) return NULL;
+
+    arraylist_t *tokens = malloc(sizeof(arraylist_t));
+    if (!tokens) {
+        perror("Failed to allocate memory for tokens array");
+        return NULL;
+    }
+
+    // Initialize arraylist and allocate space for strings
+    al_init(tokens, 10);
+    size_t all_strings_capacity = 10;
+    *all_strings = malloc(sizeof(char *) * all_strings_capacity);
+    if (!*all_strings) {
+        perror("Failed to allocate memory for all_strings array");
+        free(tokens);
+        return NULL;
+    }
+    size_t all_strings_length = 0;
+    char token_buffer[1024];
+    size_t buffer_length = 0;
+
+    size_t len = strlen(line);
+    for (size_t i = 0; i <= len; i++) {
+        char c = line[i];
+        if (isspace(c) || c == '<' || c == '>' || c == '|' || c == '\0') {
+            if (buffer_length > 0) {
+                token_buffer[buffer_length] = '\0';
+                char *new_token = strdup(token_buffer);
+                if (new_token) {
+                    if (all_strings_length >= all_strings_capacity) {
+                        all_strings_capacity *= 2;
+                        *all_strings = realloc(*all_strings, sizeof(char *) * all_strings_capacity);
+                        if (!*all_strings) {
+                            perror("Failed to reallocate memory for all_strings");
+                            free(tokens);
+                            return NULL;
+                        }
+                    }
+                    (*all_strings)[all_strings_length] = new_token;
+                    al_append(tokens, all_strings_length++);
+                }
+                buffer_length = 0;
+            }
+
+            if (c == '<' || c == '>' || c == '|') {
+                char *special_token = malloc(2);
+                special_token[0] = c;
+                special_token[1] = '\0';
+                if (all_strings_length >= all_strings_capacity) {
+                    all_strings_capacity *= 2;
+                    *all_strings = realloc(*all_strings, sizeof(char *) * all_strings_capacity);
+                    if (!*all_strings) {
+                        perror("Failed to reallocate memory for all_strings");
+                        free(tokens);
+                        return NULL;
+                    }
+                }
+                (*all_strings)[all_strings_length] = special_token;
+                al_append(tokens, all_strings_length++);
+            }
+        } else {
+            token_buffer[buffer_length++] = c;
+        }
+    }
+    return tokens;
+}
 
 // PART THREE: THE LAUNCHER/COMMAND EXECUTOR
 int is_builtin(char *command) {
@@ -39,12 +169,12 @@ void execute_builtin(char **arg) {
         if (arg[1] == NULL) {
             fprintf(stderr, "Failure with which: Missing arguments.\n");
         } else {
-            const char *PATHS = {"/usr/local/bin", "/usr/bin", "/bin"};
-            char *command = arg[1];
+            const char *PATHS[] = {"/usr/local/bin", "/usr/bin", "/bin"};
+            // char *command = arg[1];
             int boolean = 0;
             for (int i = 0; i < 3; i++) {
                 char full[1024];
-                snprintf(full, sizeof(full), "%s%s", PATHS[i], arg[1]);
+                snprintf(full, sizeof(full), "%s/%s", PATHS[i], arg[1]);
                 if (access(full, X_OK) == 0) {
                     printf("%s\n", full);
                     boolean = 1;
@@ -61,74 +191,6 @@ void execute_builtin(char **arg) {
         }
         printf("\n");
         exit(EXIT_SUCCESS);
-    }
-}
-
-/**
- * Recursive function to handle piping. This is recursive so that multiple arguments can be handled.
- * i.e. the input a | b | c | d should work
- */
-void handlepiping(char **command, int numberOfCommands, int input) {
-    if (numberOfCommands == 0) {
-        return; // base case of 0 commands left
-    }
-    int pipefd[2];
-    if (numberOfCommands > 1 && pipe(pipefd) == -1) { // may have to fix this
-        perror("Pipe failed");
-        exit(EXIT_FAILURE);
-    }
-    pid_t pid = fork();
-    if (pid == 0) {
-        // Child
-        if (input != STDIN_FILENO) {
-            dup2(input, STDIN_FILENO); // redirecting input
-            close(input);
-        }
-        if (numberOfCommands > 1) {
-            dup2(pipefd[1], STDOUT_FILENO); // redirects output to pipe
-            close(pipefd[0]);
-            close(pipefd[1]);
-        }
-        
-        // Here you would parse the next command. IMPLEMENT ONCE PARSE COMMAND FUNCTION WORKS
-        // Currently commented out this entire part, can uncomment and fix later
-        // if (inputfile) {
-        //     int infd = open(inputfile, 0_RDONLY);
-        //     if (infd = -1) {
-        //         perror("Failed to open input file");
-        //         exit(EXIT_FAILURE);
-        //     }
-        //     dup2(infd, STDIN_FILENO);
-        //     close(fd_in);
-        // }
-        // if (outputfile) {
-        //     int outfd = open(outputfile, 0_WRONLY | 0_CREAT | 0_TRUNC, 0640);
-        //     if (outfd == -1) {
-        //         perror("Failed to open output file");
-        //         exit(EXIT_FAILURE);
-        //     }
-        //     dup2(outfd, STDOUT_FILENO);
-        //     close(outfd);
-        // }
-        // execvp(arg[0], arg);
-        // perror("Execution failed");
-        // exit(EXIT_FAILURE);
-    } else if (pid <0) {
-        perror("Fork failed at Child Process creation");
-        exit(EXIT_FAILURE);
-    }
-    // Parent process
-    if (input != STDIN_FILENO) {
-        close(input);
-    }
-    if (numberOfCommands > 1) {
-        close(pipefd[1]);
-    }
-    waitpid(pid, NULL, 0); // waits for child process
-
-    // Recursive call
-    if (numberOfCommands > 1) {
-        handlepiping(&command[1], numberOfCommands - 1, pipefd[0]);
     }
 }
 
@@ -159,8 +221,6 @@ void execute_command(char **arg, char *inputf, char *outputf, int ispipe) {
             commands[numberOfCommands++] = strdup(token);
             token = strtok(NULL, "|");
         }
-        handlepiping(commands, numberOfCommands, STDIN_FILENO);
-
         // free for malloc
 
         for (int i = 0; i < numberOfCommands; i++) {
@@ -203,36 +263,114 @@ void execute_command(char **arg, char *inputf, char *outputf, int ispipe) {
     }
 }
 
-void input_to_command_execution(char *i) {
-    char **arg = NULL;
-    // parsing command (sample method). can change this later.
-    if (!parsing_command(i, &arg)) {
-        return; // returns if parsing fails
-    }
-    // execute command
-    if (arg[0] == NULL) {
-        return; // no command
-    }
-    execute_builtin(arg); // change later
+void input_to_command_execution(arraylist_t* tokens, char** all_strings) {
+    if (!tokens || tokens->length == 0) return;
 
-    // free args (use if malloc is used)
-    /* insert command here */
+    char** args = malloc(sizeof(char*) * (tokens->length + 1));
+    if (!args) {
+        perror("Failed to allocate memory for arguments");
+        return;
+    }
+
+    char* input_file = NULL;
+    char* output_file = NULL;
+    int is_pipe = 0;
+
+    unsigned arg_count = 0;
+
+    for (unsigned i = 0; i < tokens->length; i++) {
+        int index = tokens->data[i];
+        char* current_token = all_strings[index];
+
+        if (strcmp(current_token, "<") == 0 && i + 1 < tokens->length) {
+            input_file = all_strings[tokens->data[++i]];
+        } else if (strcmp(current_token, ">") == 0 && i + 1 < tokens->length) {
+            output_file = all_strings[tokens->data[++i]];
+        } else if (strcmp(current_token, "|") == 0) {
+            is_pipe = 1;
+            args[arg_count] = NULL;
+            execute_command(args, input_file, output_file, is_pipe);
+            arg_count = 0;
+            input_file = output_file = NULL;
+            is_pipe = 0;
+        } else {
+            args[arg_count++] = current_token;
+        }
+    }
+
+    args[arg_count] = NULL;
+    execute_command(args, input_file, output_file, is_pipe);
+
+    free(args);
 }
 
-int main(int argc, char *argv[]) {
-    // 3a. Interactive vs Batch Mode Support
-    if (isatty(STDIN_FILENO)) {
-        /* INTERACTIVE */
-        printf("Welcome to my shell!\n");
-        while (1) {
-            printf("mysh> ");
-            // CALL TO READ THE INPUT STRINGS
-            // CALL TO PARSE COMMANDS
-        }
-        printf("mysh: exiting\n");
-    } else {
-        /* BASH */
-        // CALL TO READ THE INPUT STRINGS
-        // CALL TO PARSE COMMANDS
+int main(int argc, char* argv[]) {
+    data* stream = malloc(sizeof(data));
+    if (!stream) {
+        perror("Failed to allocate memory for input stream");
+        return EXIT_FAILURE;
     }
+
+    stream->fd = (argc == 1) ? STDIN_FILENO : open(argv[1], O_RDONLY);
+    if (stream->fd == -1) {
+        perror("Failed to open input file");
+        free(stream);
+        return EXIT_FAILURE;
+    }
+
+    stream->current = 0;
+    stream->length = 0;
+
+    int mode = isatty(STDIN_FILENO);
+
+    printf("Welcome to my shell!\n");
+    while (1) {
+        if (mode) {
+            printf("mysh> ");
+            fflush(stdout);
+        }
+
+        char* line = readAndGetLine(stream);
+        if (!line) break;
+
+        char** all_strings = NULL;
+        arraylist_t* tokens = tokenize(line, &all_strings);
+        free(line);
+
+        if (tokens && tokens->length > 0) {
+            // Check for exit command directly before printing
+            int index = tokens->data[0];
+            if (strcmp(all_strings[index], "exit") == 0) {
+                printf("mysh: exiting\n");
+                for (size_t i = 0; i < tokens->length; i++) {
+                    free(all_strings[i]);
+                }
+                free(all_strings);
+                al_destroy(tokens);
+                free(tokens);
+                break;
+            }
+
+            // Print the entered command for other cases
+            if (mode) {
+                for (unsigned i = 0; i < tokens->length; i++) {
+                    printf("%s ", all_strings[tokens->data[i]]);
+                }
+                printf("\n");
+            }
+
+            // Execute the command
+            input_to_command_execution(tokens, all_strings);
+
+            for (size_t i = 0; i < tokens->length; i++) {
+                free(all_strings[i]);
+            }
+            free(all_strings);
+            al_destroy(tokens);
+            free(tokens);
+        }
+    }
+
+    free(stream);
+    return EXIT_SUCCESS;
 }
