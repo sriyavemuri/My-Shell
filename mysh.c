@@ -77,14 +77,15 @@ char* readAndGetLine(data* stream) {
 arraylist_t *tokenize(char *line, char ***all_strings) {
     if (!line) return NULL;
 
+    // Initialize the tokens arraylist
     arraylist_t *tokens = malloc(sizeof(arraylist_t));
     if (!tokens) {
         perror("Failed to allocate memory for tokens array");
         return NULL;
     }
-
-    // Initialize arraylist and allocate space for strings
     al_init(tokens, 10);
+
+    // Initialize `all_strings` array
     size_t all_strings_capacity = 10;
     *all_strings = malloc(sizeof(char *) * all_strings_capacity);
     if (!*all_strings) {
@@ -93,17 +94,56 @@ arraylist_t *tokenize(char *line, char ***all_strings) {
         return NULL;
     }
     size_t all_strings_length = 0;
+
     char token_buffer[1024];
     size_t buffer_length = 0;
-
     size_t len = strlen(line);
+
     for (size_t i = 0; i <= len; i++) {
         char c = line[i];
-        if (isspace(c) || c == '<' || c == '>' || c == '|' || c == '\0') {
+
+        // Handle token separators or end of line
+        if (isspace(c) || c == '\0') {
             if (buffer_length > 0) {
-                token_buffer[buffer_length] = '\0';
-                char *new_token = strdup(token_buffer);
-                if (new_token) {
+                token_buffer[buffer_length] = '\0'; // Null-terminate the token
+
+                // Check for wildcard
+                if (strchr(token_buffer, '*')) {
+                    glob_t glob_result;
+                    if (glob(token_buffer, 0, NULL, &glob_result) == 0) {
+                        for (size_t j = 0; j < glob_result.gl_pathc; j++) {
+                            // Expand each matched path and add to all_strings
+                            if (all_strings_length >= all_strings_capacity) {
+                                all_strings_capacity *= 2;
+                                *all_strings = realloc(*all_strings, sizeof(char *) * all_strings_capacity);
+                                if (!*all_strings) {
+                                    perror("Failed to reallocate memory for all_strings");
+                                    free(tokens);
+                                    globfree(&glob_result);
+                                    return NULL;
+                                }
+                            }
+
+                            (*all_strings)[all_strings_length] = strdup(glob_result.gl_pathv[j]);
+                            al_append(tokens, all_strings_length++);
+                        }
+                    } else {
+                        // No matches; treat as a regular token
+                        if (all_strings_length >= all_strings_capacity) {
+                            all_strings_capacity *= 2;
+                            *all_strings = realloc(*all_strings, sizeof(char *) * all_strings_capacity);
+                            if (!*all_strings) {
+                                perror("Failed to reallocate memory for all_strings");
+                                free(tokens);
+                                return NULL;
+                            }
+                        }
+                        (*all_strings)[all_strings_length] = strdup(token_buffer);
+                        al_append(tokens, all_strings_length++);
+                    }
+                    globfree(&glob_result);
+                } else {
+                    // Regular token (non-wildcard)
                     if (all_strings_length >= all_strings_capacity) {
                         all_strings_capacity *= 2;
                         *all_strings = realloc(*all_strings, sizeof(char *) * all_strings_capacity);
@@ -113,34 +153,20 @@ arraylist_t *tokenize(char *line, char ***all_strings) {
                             return NULL;
                         }
                     }
-                    (*all_strings)[all_strings_length] = new_token;
+                    (*all_strings)[all_strings_length] = strdup(token_buffer);
                     al_append(tokens, all_strings_length++);
                 }
-                buffer_length = 0;
-            }
-
-            if (c == '<' || c == '>' || c == '|') {
-                char *special_token = malloc(2);
-                special_token[0] = c;
-                special_token[1] = '\0';
-                if (all_strings_length >= all_strings_capacity) {
-                    all_strings_capacity *= 2;
-                    *all_strings = realloc(*all_strings, sizeof(char *) * all_strings_capacity);
-                    if (!*all_strings) {
-                        perror("Failed to reallocate memory for all_strings");
-                        free(tokens);
-                        return NULL;
-                    }
-                }
-                (*all_strings)[all_strings_length] = special_token;
-                al_append(tokens, all_strings_length++);
+                buffer_length = 0; // Reset buffer for next token
             }
         } else {
+            // Add character to token buffer
             token_buffer[buffer_length++] = c;
         }
     }
+
     return tokens;
 }
+
 
 // PART THREE: THE LAUNCHER/COMMAND EXECUTOR
 int is_builtin(char *command) {
