@@ -155,7 +155,7 @@ void execute_builtin(char **arg) {
             fprintf(stderr, "Failure with cd: Missing arguments.\n");
         } else  {
             if (chdir(arg[1]) == -1) {
-                perror("Failure with cd: Directory does not exist.\n");
+                fprintf(stderr, "cd: No such file or directory\n");
             }
         }
     } else if (strcmp(arg[0],"pwd") == 0) { /* pwd */
@@ -259,7 +259,12 @@ void execute_command(char **arg, char *inputf, char *outputf, int ispipe) {
         perror("Fork failed");
     } else {
         // parent
-        waitpid(pid, NULL, 0); // waits for child process
+        int status;
+        waitpid(pid, &status, 0); // waits for child process
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+            // If the child process exited with a non-zero status, print an error
+            printf("mysh: Command failed with code %d\n", WEXITSTATUS(status));
+        }
     }
 }
 
@@ -294,13 +299,32 @@ void input_to_command_execution(arraylist_t* tokens, char** all_strings) {
             input_file = output_file = NULL;
             is_pipe = 0;
         } else {
-            args[arg_count++] = current_token;
+            // WILDCARDS
+            glob_t glob_result;
+            memset(&glob_result, 0, sizeof(glob_result));
+            
+            if (glob(current_token, GLOB_NOCHECK | GLOB_TILDE, NULL, &glob_result) == 0){
+                for (size_t j = 0; j < glob_result.gl_pathc; j++) {
+                    char* copy = strdup(glob_result.gl_pathv[j]);
+                    if (!copy) {
+                        perror("Memory allocation failed");
+                        globfree(&glob_result);
+                        exit(EXIT_FAILURE);
+                    }
+                    args[arg_count++] = copy;
+                }
+                globfree(&glob_result);
+            } else {
+                args[arg_count++] = strdup(current_token);
+            }
         }
     }
 
     args[arg_count] = NULL;
     execute_command(args, input_file, output_file, is_pipe);
-
+    for (unsigned i =0; i < arg_count; i++)  {
+        free(args[i]);
+    }
     free(args);
 }
 
@@ -312,6 +336,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    // interactive vs batch
     stream->fd = (argc == 1) ? STDIN_FILENO : open(argv[1], O_RDONLY);
     if (stream->fd == -1) {
         perror("Failed to open input file");
@@ -323,11 +348,14 @@ int main(int argc, char* argv[]) {
     stream->length = 0;
 
     int mode = isatty(STDIN_FILENO);
+    
+    // interactive welcome message
+    if (mode==1 && argc ==1) {
+        printf("Welcome to my shell!\n");
+    }
 
-    if(mode==1 && argc ==1)
-    printf("Welcome to my shell!\n");
     while (1) {
-        if (mode==1 && argc==1) {
+        if (mode==1 && argc==1) { // Interactive Mode
             printf("mysh> ");
             fflush(stdout);
         }
@@ -343,7 +371,9 @@ int main(int argc, char* argv[]) {
             // Check for exit command directly before printing
             int index = tokens->data[0];
             if (strcmp(all_strings[index], "exit") == 0) {
-                printf("mysh: exiting\n");
+                if (mode) {
+                    printf("mysh: exiting\n");
+                }
                 for (size_t i = 0; i < tokens->length; i++) {
                     free(all_strings[i]);
                 }
@@ -352,7 +382,6 @@ int main(int argc, char* argv[]) {
                 free(tokens);
                 break;
             }
-
 
             // Execute the command
             input_to_command_execution(tokens, all_strings);
@@ -367,5 +396,11 @@ int main(int argc, char* argv[]) {
     }
 
     free(stream);
+
+    // test batch
+    if (!mode && argc>1) {
+        printf("$\n");
+        exit(EXIT_SUCCESS);
+    }
     return EXIT_SUCCESS;
 }

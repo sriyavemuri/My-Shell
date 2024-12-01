@@ -3,13 +3,13 @@ CC = gcc
 CFLAGS = -Wall -Wextra -g
 
 # Source files
-SOURCES = myshell.c arraylist.c
+SOURCES = mysh.c arraylist.c
 
 # Object files
 OBJECTS = $(SOURCES:.c=.o)
 
 # Target executable
-TARGET = myshell
+TARGET = mysh
 
 # Default target
 all: $(TARGET)
