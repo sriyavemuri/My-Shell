@@ -215,7 +215,8 @@ void execute_builtin(char **arg) {
         for (int i = 1; arg[i] != NULL; i++) {
             printf("%s ", arg[i]);
         }
-        printf("\n");
+        // printf("\n");
+        printf("mysh: exiting\n");
         exit(EXIT_SUCCESS);
     }
 }
@@ -325,24 +326,7 @@ void input_to_command_execution(arraylist_t* tokens, char** all_strings) {
             input_file = output_file = NULL;
             is_pipe = 0;
         } else {
-            // WILDCARDS
-            glob_t glob_result;
-            memset(&glob_result, 0, sizeof(glob_result));
-            
-            if (glob(current_token, GLOB_NOCHECK | GLOB_TILDE, NULL, &glob_result) == 0){
-                for (size_t j = 0; j < glob_result.gl_pathc; j++) {
-                    char* copy = strdup(glob_result.gl_pathv[j]);
-                    if (!copy) {
-                        perror("Memory allocation failed");
-                        globfree(&glob_result);
-                        exit(EXIT_FAILURE);
-                    }
-                    args[arg_count++] = copy;
-                }
-                globfree(&glob_result);
-            } else {
-                args[arg_count++] = strdup(current_token);
-            }
+            args[arg_count++] = strdup(current_token);
         }
     }
 
@@ -394,20 +378,6 @@ int main(int argc, char* argv[]) {
         free(line);
 
         if (tokens && tokens->length > 0) {
-            // Check for exit command directly before printing
-            int index = tokens->data[0];
-            if (strcmp(all_strings[index], "exit") == 0) {
-                if (mode) {
-                    printf("mysh: exiting\n");
-                }
-                for (size_t i = 0; i < tokens->length; i++) {
-                    free(all_strings[i]);
-                }
-                free(all_strings);
-                al_destroy(tokens);
-                free(tokens);
-                break;
-            }
 
             // Execute the command
             input_to_command_execution(tokens, all_strings);
