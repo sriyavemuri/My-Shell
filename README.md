@@ -1,3 +1,10 @@
+# Project 3 Description & Test Plan
+
+Project 3 Systems Programming CS214 w/ Menendez Authors: Ayushi Joshi (aj934) and Sriya Vemuri (sv660)
+
+Description: The My Shell (mysh) project implements a functional command-line shell in C. The shell is capable of reading user input in interactive or batch mode, tokenizing it into commands and arguments, handling redirections and pipes, processing wildcard expansions, forking child processes and opening files and reassigning stdin/stdout as needed. 
+
+
 # TEST FILES
 ## testcfiles
 All of these files were used in the Interactive Mode test cases, explained below. 
@@ -87,4 +94,4 @@ Expected:
 Result:
 0
 
-# BASH MODE
+# BATCH MODE
