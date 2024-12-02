@@ -98,12 +98,19 @@ arraylist_t *tokenize(char *line, char ***all_strings) {
     char token_buffer[1024];
     size_t buffer_length = 0;
     size_t len = strlen(line);
+    int quotemode = 0;
+    char quotetype = '\0';
 
     for (size_t i = 0; i <= len; i++) {
         char c = line[i];
 
         // Handle token separators or end of line
-        if (isspace(c) || c == '\0') {
+        if ((c == '"' || c == '\'') && !quotemode) {
+            quotemode = 1;
+            quotetype = c;
+        } else if (c == quotetype && quotemode) {
+            quotemode = 0;          // Exit quote mode
+        } else if (isspace(c) || c == '\0') {
             if (buffer_length > 0) {
                 token_buffer[buffer_length] = '\0'; // Null-terminate the token
 
