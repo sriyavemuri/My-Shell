@@ -172,4 +172,9 @@ Exit with arguments:
 
 - The cat command shows what the file "myscript.sh" contains. testDir contains just one subdirectory called "subDir". This test case showcases basic functionality in batch mode.
 
+## Test Case - testing with no specified file (piping)
+
+    $ cat myscript.sh | ./mysh
+    hello
+    subDir
 
