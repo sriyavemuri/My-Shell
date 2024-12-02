@@ -53,6 +53,7 @@ char* readAndGetLine(data* stream) {
             stream->current = 0; // Reset position
         }
 
+
         // Process characters in the buffer
         while (stream->current < stream->length) {
             char c = stream->buffer[stream->current++];
@@ -173,7 +174,6 @@ arraylist_t *tokenize(char *line, char ***all_strings) {
 
     return tokens;
 }
-
 
 // PART THREE: THE LAUNCHER/COMMAND EXECUTOR
 int is_builtin(char *command) {
@@ -345,6 +345,7 @@ void input_to_command_execution(arraylist_t* tokens, char** all_strings) {
     free(args);
 }
 
+// MAIN
 int main(int argc, char* argv[]) {
 
     data* stream = malloc(sizeof(data));
