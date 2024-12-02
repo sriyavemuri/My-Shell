@@ -19,6 +19,7 @@ typedef struct {
     char buffer[1024]; // Fixed-size buffer for reading.
 } data;
 
+
 char* readAndGetLine(data* stream) {
     if (!stream || stream->fd < 0) {
         return NULL; // Invalid stream
@@ -105,13 +106,15 @@ arraylist_t *tokenize(char *line, char ***all_strings) {
     for (size_t i = 0; i <= len; i++) {
         char c = line[i];
 
-        // Handle token separators or end of line
+        // Handle quotes
         if ((c == '"' || c == '\'') && !quotemode) {
             quotemode = 1;
             quotetype = c;
         } else if (c == quotetype && quotemode) {
-            quotemode = 0;          // Exit quote mode
-        } else if (isspace(c) || c == '\0' || c == '<' || c == '>' || c == '|') {
+            quotemode = 0;
+        } 
+        // Handle token separators or end of line
+        else if (isspace(c) || c == '\0' || c == '<' || c == '>' || c == '|') {
             if (buffer_length > 0) {
                 token_buffer[buffer_length] = '\0'; // Null-terminate the token
 
@@ -131,7 +134,6 @@ arraylist_t *tokenize(char *line, char ***all_strings) {
                                     return NULL;
                                 }
                             }
-
                             (*all_strings)[all_strings_length] = strdup(glob_result.gl_pathv[j]);
                             al_append(tokens, all_strings_length++);
                         }
@@ -165,6 +167,11 @@ arraylist_t *tokenize(char *line, char ***all_strings) {
                     al_append(tokens, all_strings_length++);
                 }
                 buffer_length = 0; // Reset buffer for next token
+            }
+            if (c == '<' || c == '>' || c == '|') {
+                char special[2] = {c, '\0'};
+                (*all_strings)[all_strings_length] = strdup(special);
+                al_append(tokens, all_strings_length++);
             }
         } else {
             // Add character to token buffer
@@ -228,121 +235,122 @@ void execute_builtin(char **arg) {
     }
 }
 
-void execute_command(char **arg, char *inputf, char *outputf, int ispipe) {
-    // Handle built in functions
+void execute_command(char **arg, char *inputf, char *outputf, int prev_fd, int next_fd) {
+    if (arg[0] == NULL) return;
+
     if (is_builtin(arg[0])) {
+        // printf("Executing built-in command: %s\n", arg[0]);
         execute_builtin(arg);
         return;
     }
-    // handling piping
-    if (ispipe) {
-        char **commands = malloc(sizeof(char *) * 128);
-        if (commands == NULL) {
-            perror("Failed to allocate memory for commands.");
-            exit(EXIT_FAILURE);
-        }
 
-        int numberOfCommands = 0;
-        char *token = strtok(arg[0], "|");
-        while (token != NULL) {
-            if (numberOfCommands >= 128) {
-                commands = realloc(commands, sizeof(char *) * (numberOfCommands + 128));
-                if (commands == NULL) {
-                    perror("Failed to reallocate memory for commands");
-                    exit(EXIT_FAILURE);
-                }
-            }
-            commands[numberOfCommands++] = strdup(token);
-            token = strtok(NULL, "|");
-        }
-        // free for malloc
-
-        for (int i = 0; i < numberOfCommands; i++) {
-            free(commands[i]);
-        }
-        free(commands);
-        return;
-    }
-    
-    // normal execution
     pid_t pid = fork();
-    if (pid ==0) {
-        // child
+    if (pid == 0) {
+        // Child process
         if (inputf) {
+            // printf("Redirecting input from: %s\n", inputf);
             int infd = open(inputf, O_RDONLY);
             if (infd == -1) {
-                perror("Normal execution of files. Failed to open input file.");
+                perror("Failed to open input file");
                 exit(EXIT_FAILURE);
             }
             dup2(infd, STDIN_FILENO);
             close(infd);
         }
         if (outputf) {
-            int outfd = open(outputf, O_WRONLY | O_CREAT | O_TRUNC , 0640);
+            // printf("Redirecting output to: %s\n", outputf);
+            int outfd = open(outputf, O_WRONLY | O_CREAT | O_TRUNC, 0640);
             if (outfd == -1) {
-                perror("Normal execution of files. Failed to open output file");
+                perror("Failed to open output file");
                 exit(EXIT_FAILURE);
             }
             dup2(outfd, STDOUT_FILENO);
             close(outfd);
         }
+        if (prev_fd != -1) {
+            // printf("Setting up input pipe: %d\n", prev_fd);
+            dup2(prev_fd, STDIN_FILENO);
+            close(prev_fd);
+        }
+        if (next_fd != -1) {
+            // printf("Setting up output pipe: %d\n", next_fd);
+            dup2(next_fd, STDOUT_FILENO);
+            close(next_fd);
+        }
+
+        // printf("Executing external command: %s\n", arg[0]);
         execvp(arg[0], arg);
-        perror("Execution of failed");
+        perror("Execution failed");
         exit(EXIT_FAILURE);
     } else if (pid < 0) {
         perror("Fork failed");
     } else {
-        // parent
-        int status;
-        waitpid(pid, &status, 0); // waits for child process
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-            // If the child process exited with a non-zero status, print an error
-            printf("mysh: Command failed with code %d\n", WEXITSTATUS(status));
-        }
+        // Parent process
+        waitpid(pid, NULL, 0);
     }
 }
 
-void input_to_command_execution(arraylist_t* tokens, char** all_strings) {
+void input_to_command_execution(arraylist_t *tokens, char **all_strings) {
     if (!tokens || tokens->length == 0) return;
 
-    char** args = malloc(sizeof(char*) * (tokens->length + 1));
-    if (!args) {
-        perror("Failed to allocate memory for arguments");
-        return;
-    }
-
-    char* input_file = NULL;
-    char* output_file = NULL;
-    int is_pipe = 0;
-
-    unsigned arg_count = 0;
-
+    int num_pipes = 0;
     for (unsigned i = 0; i < tokens->length; i++) {
-        int index = tokens->data[i];
-        char* current_token = all_strings[index];
-
-        if (strcmp(current_token, "<") == 0 && i + 1 < tokens->length) {
-            input_file = all_strings[tokens->data[++i]];
-        } else if (strcmp(current_token, ">") == 0 && i + 1 < tokens->length) {
-            output_file = all_strings[tokens->data[++i]];
-        } else if (strcmp(current_token, "|") == 0) {
-            is_pipe = 1;
-            args[arg_count] = NULL;
-            execute_command(args, input_file, output_file, is_pipe);
-            arg_count = 0;
-            input_file = output_file = NULL;
-            is_pipe = 0;
-        } else {
-            args[arg_count++] = strdup(current_token);
+        if (strcmp(all_strings[tokens->data[i]], "|") == 0) {
+            num_pipes++;
         }
     }
 
-    args[arg_count] = NULL;
-    execute_command(args, input_file, output_file, is_pipe);
-    for (unsigned i =0; i < arg_count; i++)  {
-        free(args[i]);
+    int pipefds[2 * num_pipes]; // File descriptors for pipes
+    for (int i = 0; i < num_pipes; i++) {
+        if (pipe(pipefds + i * 2) < 0) {
+            perror("Pipe failed");
+            return;
+        }
     }
-    free(args);
+
+    char *input_file = NULL;
+    char *output_file = NULL;
+    int command_start = 0;
+    int pipe_index = 0;
+
+    for (unsigned i = 0; i <= tokens->length; i++) {
+        if (i == tokens->length || strcmp(all_strings[tokens->data[i]], "|") == 0) {
+            char **args = malloc(sizeof(char *) * (i - command_start + 1));
+            int arg_index = 0;
+
+            for (unsigned j = command_start; j < i; j++) {
+                char *current_token = all_strings[tokens->data[j]];
+
+                if (strcmp(current_token, "<") == 0 && j + 1 < i) {
+                    input_file = all_strings[tokens->data[++j]];
+                } else if (strcmp(current_token, ">") == 0 && j + 1 < i) {
+                    output_file = all_strings[tokens->data[++j]];
+                } else {
+                    args[arg_index++] = strdup(current_token);
+                }
+            }
+
+            args[arg_index] = NULL;
+
+            // Set up pipes
+            int prev_fd = (pipe_index == 0) ? -1 : pipefds[(pipe_index - 1) * 2];
+            int next_fd = (pipe_index < num_pipes) ? pipefds[pipe_index * 2 + 1] : -1;
+
+            execute_command(args, input_file, output_file, prev_fd, next_fd);
+
+            if (prev_fd != -1) close(prev_fd);
+            if (next_fd != -1) close(next_fd);
+
+            for (int k = 0; k < arg_index; k++) free(args[k]);
+            free(args);
+
+            input_file = output_file = NULL;
+            command_start = i + 1;
+            pipe_index++;
+        }
+    }
+
+    for (int i = 0; i < 2 * num_pipes; i++) close(pipefds[i]);
 }
 
 // MAIN
