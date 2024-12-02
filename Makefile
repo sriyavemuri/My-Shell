@@ -12,7 +12,7 @@ OBJECTS = $(SOURCES:.c=.o)
 TARGET = mysh
 
 # Additional utilities
-UTILITIES = testdir/generateatest testdir/countatest
+UTILITIES = testcfiles/generateatest testcfiles/sumtest
 
 # Default target
 all: $(TARGET) $(UTILITIES)
@@ -26,13 +26,13 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Build utility generateatest
-testdir/generateatest: testdir/generateatest.c
-	$(CC) $(CFLAGS) -o testdir/generateatest testdir/generateatest.c
+testcfiles/generateatest: testcfiles/generateatest.c
+	$(CC) $(CFLAGS) -o testcfiles/generateatest testcfiles/generateatest.c
 
-# Build utility countatest
-testdir/countatest: testdir/countatest.c
-	$(CC) $(CFLAGS) -o testdir/countatest testdir/countatest.c
+# Build utility sumtest
+testcfiles/sumtest: testcfiles/sumtest.c
+	$(CC) $(CFLAGS) -o testcfiles/sumtest testcfiles/sumtest.c
 
 # Clean up build files
 clean:
-	rm -f $(OBJECTS) $(TARGET) testdir/*.o $(UTILITIES)
+	rm -f $(OBJECTS) $(TARGET) testcfiles/*.o $(UTILITIES)
