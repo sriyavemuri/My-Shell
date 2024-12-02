@@ -110,7 +110,7 @@ arraylist_t *tokenize(char *line, char ***all_strings) {
             quotetype = c;
         } else if (c == quotetype && quotemode) {
             quotemode = 0;          // Exit quote mode
-        } else if (isspace(c) || c == '\0') {
+        } else if (isspace(c) || c == '\0' || c == '<' || c == '>' || c == '|') {
             if (buffer_length > 0) {
                 token_buffer[buffer_length] = '\0'; // Null-terminate the token
 
