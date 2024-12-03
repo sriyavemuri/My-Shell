@@ -13,6 +13,8 @@
 #include <signal.h>
 
 void psignal(int sig, const char *s);
+int last_exit_status = 0;
+
 
 // PART ONE: READING THE INPUT STRINGS
 typedef struct {
@@ -268,6 +270,7 @@ void execute_command(char **arg, char *inputf, char *outputf, int prev_fd, int n
     if (is_builtin(arg[0])) {
         // printf("Executing built-in command: %s\n", arg[0]);
         execute_builtin(arg);
+        last_exit_status = 0;
         return;
     }
 
@@ -305,7 +308,7 @@ void execute_command(char **arg, char *inputf, char *outputf, int prev_fd, int n
             close(next_fd);
         }
         
-         char *full_path = resolve_command_path(arg[0]);
+        char *full_path = resolve_command_path(arg[0]);
         if (!full_path) {
             fprintf(stderr, "Command not found: %s\n", arg[0]);
             exit(EXIT_FAILURE);
@@ -322,12 +325,14 @@ void execute_command(char **arg, char *inputf, char *outputf, int prev_fd, int n
         // parent
         int status;
         waitpid(pid, &status, 0); // waits for child process
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-            // If the child process exited with a non-zero status, print an error
-            printf("mysh: Command failed with code %d\n", WIFEXITED(status));
-        } 
-        if WIFSIGNALED(status) {
+        if (WIFEXITED(status)) {
+            last_exit_status = WEXITSTATUS(status); // Retrieve exit code
+            if (last_exit_status != 0) {
+                printf("mysh: Command failed with code %d\n", last_exit_status);
+            }
+        } else if (WIFSIGNALED(status)) {
             psignal(WTERMSIG(status), "Terminated by signal");
+            last_exit_status = 128 + WTERMSIG(status); // Encode signal number
         }
     }
     return;
@@ -346,7 +351,8 @@ void input_to_command_execution(arraylist_t *tokens, char **all_strings) {
     int pipefds[2 * num_pipes]; // File descriptors for pipes
     for (int i = 0; i < num_pipes; i++) {
         if (pipe(pipefds + i * 2) < 0) {
-            perror("Pipe failed");
+            perror("Pipe failed at creation");
+            last_exit_status = 1;
             return;
         }
     }
@@ -367,12 +373,19 @@ void input_to_command_execution(arraylist_t *tokens, char **all_strings) {
                 if (strcmp(current_token, "<") == 0 && j + 1 < i) {
                     input_file = all_strings[tokens->data[++j]];
                 } else if (strcmp(current_token, ">") == 0 && j + 1 < i) {
+                    // Handle intermediate redirections
                     output_file = all_strings[tokens->data[++j]];
+                    int outfd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0640);
+                    if (outfd == -1) {
+                        perror("Failed to open output file for redirection");
+                        last_exit_status = 1;
+                        return;
+                    }
+                    close(outfd); // Close immediately after creating/truncating
                 } else {
                     args[arg_index++] = strdup(current_token);
                 }
             }
-
             args[arg_index] = NULL;
 
             // Set up pipes
@@ -387,7 +400,8 @@ void input_to_command_execution(arraylist_t *tokens, char **all_strings) {
             for (int k = 0; k < arg_index; k++) free(args[k]);
             free(args);
 
-            input_file = output_file = NULL;
+            input_file = NULL;
+            output_file = NULL;
             command_start = i + 1;
             pipe_index++;
         }
@@ -395,6 +409,7 @@ void input_to_command_execution(arraylist_t *tokens, char **all_strings) {
 
     for (int i = 0; i < 2 * num_pipes; i++) close(pipefds[i]);
 }
+
 
 // MAIN
 int main(int argc, char* argv[]) {

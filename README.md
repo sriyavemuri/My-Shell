@@ -33,12 +33,31 @@ Given an integer input, the program will return a string of the character 'a' re
 Given at least two integer inputs, the program will add them all together and return the sum as an integer.
 ### product.c
 Given at least two integer inputs, the program will multiply them all together and return the product as an integer.
+### file1, file2, and file3.txt
+All three of these text files have different integers.
+
+## batchtest
+All of these files are Interactive Mode test cases rewritten so that it can be tested in batch mode (see below).
+
+## testDir/subDir
+Directory with subdirectory subDir that consists of three files.
+### file1, file2, and file3.txt
+All three of these text files have the line "This is <filename>!" where filename is replaced with file1, file2, or file3 respectively.
+
+## signal_test.c
+Used to test error messaging for signals (specifically the exact output for error messaging).
+
+# TEST OUTPUT FILES
+## testoutput
+All of the files in here are outputs for interactive mode tests
+## batchoutput
+All of the files in here are outputs for batch mode tests
 
 
-# INTERACTIVE MODE
+# INTERACTIVE MODE TEST CASES
 
 The following test cases utilize the simple C files written in the testcfiles directory. Each test case's result is outputted to their respective .txt file in the testoutput folder.
-The expected result and the actual result in the terminal is below. Please note that all of the results were preceeded with mysh> and additionally, the shell upon startup said "Welcome to my shell!" Upon exitting, it said, "mysh: exiting". 
+The expected result and the actual result in the terminal is below. *Please note that all of the results were preceeded with mysh> and additionally, the shell upon startup said "Welcome to my shell!" Upon exitting, it said, "mysh: exiting".*
 
 ## Test Case 1 - Redirection Test 01
     ./testcfiles/generateatest 10 > testoutput/test1output.txt
@@ -102,10 +121,12 @@ Result:
     cat testoutput/nonexistent.txt | ./testcfiles/sumtest 10 20 > testoutput/test7output.txt
 
 Expected:
-No such file or directory error
+cat: testoutput/nonexistent.txt: No such file or directory
+mysh: Command failed with code 1
 
 Result:
 cat: testoutput/nonexistent.txt: No such file or directory
+mysh: Command failed with code 1
 
 ## Test Case 8 - Error Handling for Incorrect Input + Redirection
     ./testcfiles/sumtest "invalid" > testoutput/test8output.txt
@@ -178,10 +199,81 @@ Exit with arguments:
 
 - In this test, we have created a file names signal_test that runs for a long time. We terminate this process in the middle by entering kill -SIGINT <PID> in another terminal window. The PID is given to us by signal_test. As expected, mysh prints Terminated by signal: Interrupt using psignal. 
 
+# BATCH MODE TEST CASES
+The following test cases utilize the shell in bash mode. Test cases 1 - 8 are the same as the respective interactive mode test cases, except it is written in a .sh file. For the batch mode test, the .sh file is executed in the format ./mysh < batchtest/test<n>.sh, where n is the test case number. The output is saved in a text file in batchoutput, but also printed to the shell. The result printed here is the result printed in the shell.
 
-# BATCH MODE
+## Test Case 1 - Redirection Test 01
+./mysh < batchtest/test1.sh
 
-## Test Case - echo and ls in batch mode
+Expected:
+aaaaaaaaaa
+Result:
+aaaaaaaaaa
+
+## Test Case 2 - Redirection Test 02
+./mysh < batchtest/test2.sh
+
+Expected:
+40
+Result:
+40
+
+## Test Case 3 - Piping Test 01
+./mysh < batchtest/test3.sh
+
+Expected:
+16
+Result:
+16
+
+## Test Case 4 - Wildcard Test
+./mysh < batchtest/test4.sh
+
+Expected:
+2 4 6
+3 5
+7
+Result:
+2 4 6
+3 5
+7
+
+## Test Case 5 - Piping Test 02
+./mysh < batchtest/test5.sh
+
+Expected:
+60
+Result:
+60
+
+## Test Case 6 - Multi-Piping Test
+./mysh < batchtest/test6.sh
+
+Expected:
+364
+Result:
+364
+
+## Test Case 7 - Error Handling for Nonexistent Files
+./mysh < batchtest/test7.sh
+
+Expected:
+cat: batchoutput/nonexistent.txt: No such file or directory
+mysh: Command failed with code 1
+
+Result:
+cat: batchoutput/nonexistent.txt: No such file or directory
+mysh: Command failed with code 1
+
+## Test Case 8 - Error Handling for Incorrect Input + Redirection
+./mysh < batchtest/test8.sh
+
+Expected:
+0
+Result:
+0
+
+## Test Case 9  - echo and ls in batch mode
 
     $ cat myscript.sh
     echo hello
@@ -190,11 +282,26 @@ Exit with arguments:
     hello
     subDir
 
-- The cat command shows what the file "myscript.sh" contains. testDir contains just one subdirectory called "subDir". This test case showcases basic functionality in batch mode.
+The cat command shows what the file "myscript.sh" contains. testDir contains just one subdirectory called "subDir". This test case showcases basic functionality in batch mode.
 
-## Test Case - testing with no specified file (piping)
+## Test Case 10 - testing with no specified file (piping)
 
     $ cat myscript.sh | ./mysh
     hello
     subDir
 
+# COMBINED INTERACTIVE AND BATCH MODE
+We decided to truly test our implementation of mysh by having an interactive mode open an interactive mode that ran mysh in bash. Below is the result, which is what was expected.
+
+`$ ./mysh
+Welcome to my shell!
+mysh> ./mysh
+Welcome to my shell!
+mysh> ./mysh myscript.sh
+hello
+subDir
+mysh> exit
+mysh: exiting
+mysh> exit
+mysh: exiting
+$ `
