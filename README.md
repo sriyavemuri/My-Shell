@@ -211,62 +211,62 @@ Result:
 aaaaaaaaaa
 
 ## Test Case 2 - Redirection Test 02
-./mysh < batchtest/test2.sh
+`./mysh < batchtest/test2.sh`
 
 Expected:
-40
+`40`
 Result:
-40
+`40`
 
 ## Test Case 3 - Piping Test 01
-./mysh < batchtest/test3.sh
+`./mysh < batchtest/test3.sh`
 
 Expected:
-16
+`16`
 Result:
-16
+`16`
 
 ## Test Case 4 - Wildcard Test
-./mysh < batchtest/test4.sh
+`./mysh < batchtest/test4.sh`
 
 Expected:
-2 4 6
+`2 4 6
 3 5
-7
+7`
 Result:
-2 4 6
+`2 4 6
 3 5
-7
+7`
 
 ## Test Case 5 - Piping Test 02
-./mysh < batchtest/test5.sh
+`./mysh < batchtest/test5.sh`
 
 Expected:
-60
+`60`
 Result:
-60
+`60`
 
 ## Test Case 6 - Multi-Piping Test
-./mysh < batchtest/test6.sh
+`./mysh < batchtest/test6.sh`
 
 Expected:
-364
+`364`
 Result:
-364
+`364`
 
 ## Test Case 7 - Error Handling for Nonexistent Files
-./mysh < batchtest/test7.sh
+`./mysh < batchtest/test7.sh`
 
 Expected:
-cat: batchoutput/nonexistent.txt: No such file or directory
-mysh: Command failed with code 1
+`cat: batchoutput/nonexistent.txt: No such file or directory
+mysh: Command failed with code 1`
 
 Result:
-cat: batchoutput/nonexistent.txt: No such file or directory
-mysh: Command failed with code 1
+`cat: batchoutput/nonexistent.txt: No such file or directory
+mysh: Command failed with code 1`
 
 ## Test Case 8 - Error Handling for Incorrect Input + Redirection
-./mysh < batchtest/test8.sh
+`./mysh < batchtest/test8.sh`
 
 Expected:
 0
@@ -274,21 +274,20 @@ Result:
 0
 
 ## Test Case 9  - echo and ls in batch mode
-
-    $ cat myscript.sh
-    echo hello
-    ls testDir
-    $ ./mysh myscript.sh
-    hello
-    subDir
+`$ cat myscript.sh
+echo hello
+ls testDir
+$ ./mysh myscript.sh
+hello
+subDir`
 
 The cat command shows what the file "myscript.sh" contains. testDir contains just one subdirectory called "subDir". This test case showcases basic functionality in batch mode.
 
 ## Test Case 10 - testing with no specified file (piping)
 
-    $ cat myscript.sh | ./mysh
+    `$ cat myscript.sh | ./mysh
     hello
-    subDir
+    subDir`
 
 # COMBINED INTERACTIVE AND BATCH MODE
 We decided to truly test our implementation of mysh by having an interactive mode open an interactive mode that ran mysh in bash. Below is the result, which is what was expected.
