@@ -160,6 +160,20 @@ Exit with arguments:
 
 - This test incorporated the use of wildcard(*) with ls and cat. Both commands work as expected.
 
+## Test Case 11 - Non-zero status code
+
+    Welcome to my shell!
+    mysh> ls sdkjfn
+    ls: cannot access 'sdkjfn': No such file or directory
+    mysh: Command failed with code 1
+
+## Test Case 12 - Error testing: Signals
+
+    mysh> ./signal_test
+    My PID is: 2433750
+    Terminated by signal: Interrupt
+
+- In this test, we have created a file names signal_test that runs for a long time. We terminate this process in the middle by entering kill -SIGINT <PID> in another terminal window. The PID is given to us by signal_test. As expected, mysh prints Terminated by signal: Interrupt using psignal. 
 
 
 # BATCH MODE
