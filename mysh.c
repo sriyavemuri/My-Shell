@@ -276,8 +276,13 @@ void execute_command(char **arg, char *inputf, char *outputf, int prev_fd, int n
     } else if (pid < 0) {
         perror("Fork failed");
     } else {
-        // Parent process
-        waitpid(pid, NULL, 0);
+        // parent
+        int status;
+        waitpid(pid, &status, 0); // waits for child process
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+            // If the child process exited with a non-zero status, print an error
+            printf("mysh: Command failed with code %d\n", WIFEXITED(status));
+        }
     }
 }
 
