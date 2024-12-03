@@ -118,7 +118,7 @@ Result:
 `364`
 
 ## Test Case 7 - Error Handling for Nonexistent Files
-    `cat testoutput/nonexistent.txt | ./testcfiles/sumtest 10 20 > testoutput/test7output.txt`
+    `cat testoutput/nonexistent.txt > testoutput/test7output.txt`
 
 Expected:
 `cat: testoutput/nonexistent.txt: No such file or directory
@@ -127,6 +127,8 @@ mysh: Command failed with code 1`
 Result:
 `cat: testoutput/nonexistent.txt: No such file or directory
 mysh: Command failed with code 1`
+
+test7output.txt will have nothing written
 
 ## Test Case 8 - Error Handling for Incorrect Input + Redirection
     `./testcfiles/sumtest "invalid" > testoutput/test8output.txt
