@@ -285,13 +285,14 @@ The cat command shows what the file "myscript.sh" contains. testDir contains jus
 
 ## Test Case 10 - testing with no specified file (piping)
 
-    `$ cat myscript.sh | ./mysh
+    $ cat myscript.sh | ./mysh
     hello
-    subDir`
+    subDir
 
 # COMBINED INTERACTIVE AND BATCH MODE
 We decided to truly test our implementation of mysh by having an interactive mode open an interactive mode that ran mysh in bash. Below is the result, which is what was expected.
 
+```console
 $ ./mysh
 Welcome to my shell!
 mysh> ./mysh
@@ -304,3 +305,4 @@ mysh: exiting
 mysh> exit
 mysh: exiting
 $ 
+```
