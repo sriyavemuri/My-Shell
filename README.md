@@ -21,6 +21,9 @@ execute_command: Spawns child processes to execute external commands, managing p
 Function for Pipelines:
 input_to_command_execution: Orchestrates execution of commands connected by pipes, setting up the correct file descriptors for each command.
 
+Function to resolve path for execv:
+resolve_command_path
+
 # TEST FILES
 ## testcfiles
 All of these files were used in the Interactive Mode test cases, explained below. 
