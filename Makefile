@@ -12,7 +12,7 @@ OBJECTS = $(SOURCES:.c=.o)
 TARGET = mysh
 
 # Additional utilities
-UTILITIES = testcfiles/generateatest testcfiles/sumtest testcfiles/product
+UTILITIES = signal_test testcfiles/generateatest testcfiles/sumtest testcfiles/product
 
 # Default target
 all: $(TARGET) $(UTILITIES)
@@ -24,6 +24,10 @@ $(TARGET): $(OBJECTS)
 # Rule for object files
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+# Build utility signal_test
+signal_test: signal_test.c
+	$(CC) $(CFLAGS) -o signal_test signal_test.c
 
 # Build utility generateatest
 testcfiles/generateatest: testcfiles/generateatest.c
