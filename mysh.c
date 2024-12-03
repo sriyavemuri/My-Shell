@@ -10,6 +10,9 @@
 #include <glob.h>
 #include "arraylist.h"
 #include <ctype.h>
+#include <signal.h>
+
+void psignal(int sig, const char *s);
 
 // PART ONE: READING THE INPUT STRINGS
 typedef struct {
@@ -282,8 +285,12 @@ void execute_command(char **arg, char *inputf, char *outputf, int prev_fd, int n
         if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
             // If the child process exited with a non-zero status, print an error
             printf("mysh: Command failed with code %d\n", WIFEXITED(status));
+        } 
+        if WIFSIGNALED(status) {
+            psignal(WTERMSIG(status), "Terminated by signal:");
         }
     }
+    return;
 }
 
 void input_to_command_execution(arraylist_t *tokens, char **all_strings) {
