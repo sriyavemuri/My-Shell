@@ -12,6 +12,8 @@ All of these files were used in the Interactive Mode test cases, explained below
 Given an integer input, the program will return a string of the character 'a' repeated the integer input number of times. So for example, the input 3 would result in 'aaa'.
 ### sumtest.c
 Given at least two integer inputs, the program will add them all together and return the sum as an integer.
+### product.c
+Given at least two integer inputs, the program will multiply them all together and return the product as an integer.
 
 
 # INTERACTIVE MODE
@@ -38,43 +40,44 @@ Result:
 40
 
 ## Test Case 3 - Piping Test 01
-./testcfiles/generateatest 10 | ./testcfiles/sumtest 5 15 > testoutput/test3output.txt
+./testcfiles/sumtest 3 5 | ./testcfiles/product 2 > testoutput/test3output.txt
 cat testoutput/test3output.txt
 
 Expected:
-20
+16
 Result:
-20
+16
 
-## Test Case 4 - Wildcard and Redirection Test
-./testcfiles/generateatest 3 > testoutput/a1.txt
-./testcfiles/generateatest 5 > testoutput/a2.txt
-./testcfiles/generateatest 7 > testoutput/a3.txt
-cat testoutput/a*.txt | ./testcfiles/sumtest 10 20 > testoutput/test4output.txt
+## Test Case 4 - Wildcard Test
+cat testcfiles/*.txt > testoutput/test4output.txt
 cat testoutput/test4output.txt
 
 Expected:
-30
+2 4 6
+3 5
+7
 Result:
-30
+2 4 6
+3 5
+7
 
 ## Test Case 5 - Piping Test 02
-./testcfiles/generateatest 100 | ./testcfiles/sumtest 50 50 > testoutput/test5output.txt
+./testcfiles/product 3 10 | ./testcfiles/product 2 > testoutput/test5output.txt
 cat testoutput/test5output.txt
 
 Expected:
-100
+60
 Result:
-100
+60
 
 ## Test Case 6 - Multi-Piping Test
-./testcfiles/generateatest 5 | ./testcfiles/sumtest 10 | ./testcfiles/sumtest 5 > testoutput/test6output.txt
+./testcfiles/product 7 13 | ./testcfiles/product 2 | ./testcfiles/product 2 > testoutput/test6output.txt
 cat testoutput/test6output.txt
 
 Expected:
-5
+364
 Result:
-5
+364
 
 ## Test Case 7 - Error Handling for Nonexistent Files
 cat testoutput/nonexistent.txt | ./testcfiles/sumtest 10 20 > testoutput/test7output.txt

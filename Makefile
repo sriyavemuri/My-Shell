@@ -12,7 +12,7 @@ OBJECTS = $(SOURCES:.c=.o)
 TARGET = mysh
 
 # Additional utilities
-UTILITIES = testcfiles/generateatest testcfiles/sumtest
+UTILITIES = testcfiles/generateatest testcfiles/sumtest testcfiles/product
 
 # Default target
 all: $(TARGET) $(UTILITIES)
@@ -32,6 +32,10 @@ testcfiles/generateatest: testcfiles/generateatest.c
 # Build utility sumtest
 testcfiles/sumtest: testcfiles/sumtest.c
 	$(CC) $(CFLAGS) -o testcfiles/sumtest testcfiles/sumtest.c
+
+# Build utility sumtest
+testcfiles/product: testcfiles/product.c
+	$(CC) $(CFLAGS) -o testcfiles/product testcfiles/product.c
 
 # Clean up build files
 clean:
