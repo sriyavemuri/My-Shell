@@ -60,82 +60,82 @@ The following test cases utilize the simple C files written in the testcfiles di
 The expected result and the actual result in the terminal is below. *Please note that all of the results were preceeded with mysh> and additionally, the shell upon startup said "Welcome to my shell!" Upon exitting, it said, "mysh: exiting".*
 
 ## Test Case 1 - Redirection Test 01
-    ./testcfiles/generateatest 10 > testoutput/test1output.txt
-    cat testoutput/test1output.txt
+    `./testcfiles/generateatest 10 > testoutput/test1output.txt
+    cat testoutput/test1output.txt`
 
 Expected:
-aaaaaaaaaa
+`aaaaaaaaaa`
 Result:
-aaaaaaaaaa
+`aaaaaaaaaa`
 
 ## Test Case 2 - Redirection Test 02
-    ./testcfiles/sumtest 5 15 20 > testoutput/test2output.txt
-    cat testoutput/test2output.txt
+    `./testcfiles/sumtest 5 15 20 > testoutput/test2output.txt
+    cat testoutput/test2output.txt`
 
 Expected:
-40
+`40`
 Result:
-40
+`40`
 
 ## Test Case 3 - Piping Test 01
-./testcfiles/sumtest 3 5 | ./testcfiles/product 2 > testoutput/test3output.txt
-cat testoutput/test3output.txt
+`./testcfiles/sumtest 3 5 | ./testcfiles/product 2 > testoutput/test3output.txt
+cat testoutput/test3output.txt`
 
 Expected:
-16
+`16`
 Result:
-16
+`16`
 
 ## Test Case 4 - Wildcard Test
-cat testcfiles/*.txt > testoutput/test4output.txt
-cat testoutput/test4output.txt
+`cat testcfiles/*.txt > testoutput/test4output.txt
+cat testoutput/test4output.txt`
 
 Expected:
-2 4 6
+`2 4 6
 3 5
-7
+7`
 Result:
-2 4 6
+`2 4 6
 3 5
-7
+7`
 
 ## Test Case 5 - Piping Test 02
-./testcfiles/product 3 10 | ./testcfiles/product 2 > testoutput/test5output.txt
-cat testoutput/test5output.txt
+`./testcfiles/product 3 10 | ./testcfiles/product 2 > testoutput/test5output.txt
+cat testoutput/test5output.txt`
 
 Expected:
-60
+`60`
 Result:
-60
+`60`
 
 ## Test Case 6 - Multi-Piping Test
-./testcfiles/product 7 13 | ./testcfiles/product 2 | ./testcfiles/product 2 > testoutput/test6output.txt
-cat testoutput/test6output.txt
+`./testcfiles/product 7 13 | ./testcfiles/product 2 | ./testcfiles/product 2 > testoutput/test6output.txt
+cat testoutput/test6output.txt`
 
 Expected:
-364
+`364`
 Result:
-364
+`364`
 
 ## Test Case 7 - Error Handling for Nonexistent Files
-    cat testoutput/nonexistent.txt | ./testcfiles/sumtest 10 20 > testoutput/test7output.txt
+    `cat testoutput/nonexistent.txt | ./testcfiles/sumtest 10 20 > testoutput/test7output.txt`
 
 Expected:
-cat: testoutput/nonexistent.txt: No such file or directory
-mysh: Command failed with code 1
+`cat: testoutput/nonexistent.txt: No such file or directory
+mysh: Command failed with code 1`
 
 Result:
-cat: testoutput/nonexistent.txt: No such file or directory
-mysh: Command failed with code 1
+`cat: testoutput/nonexistent.txt: No such file or directory
+mysh: Command failed with code 1`
 
 ## Test Case 8 - Error Handling for Incorrect Input + Redirection
-    ./testcfiles/sumtest "invalid" > testoutput/test8output.txt
-    cat testoutput/test8output.txt
+    `./testcfiles/sumtest "invalid" > testoutput/test8output.txt
+    cat testoutput/test8output.txt`
 
 Expected:
-0
+`0`
 Result:
-0
+`0`
 
 ## Test Case 9 - Built In Commands
 
@@ -203,12 +203,12 @@ Exit with arguments:
 The following test cases utilize the shell in bash mode. Test cases 1 - 8 are the same as the respective interactive mode test cases, except it is written in a .sh file. For the batch mode test, the .sh file is executed in the format ./mysh < batchtest/test<n>.sh, where n is the test case number. The output is saved in a text file in batchoutput, but also printed to the shell. The result printed here is the result printed in the shell.
 
 ## Test Case 1 - Redirection Test 01
-./mysh < batchtest/test1.sh
+`./mysh < batchtest/test1.sh`
 
 Expected:
-aaaaaaaaaa
+`aaaaaaaaaa`
 Result:
-aaaaaaaaaa
+`aaaaaaaaaa`
 
 ## Test Case 2 - Redirection Test 02
 `./mysh < batchtest/test2.sh`
@@ -269,9 +269,9 @@ mysh: Command failed with code 1`
 `./mysh < batchtest/test8.sh`
 
 Expected:
-0
+`0`
 Result:
-0
+`0`
 
 ## Test Case 9  - echo and ls in batch mode
 `$ cat myscript.sh
