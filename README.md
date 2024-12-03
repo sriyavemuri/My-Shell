@@ -292,7 +292,7 @@ The cat command shows what the file "myscript.sh" contains. testDir contains jus
 # COMBINED INTERACTIVE AND BATCH MODE
 We decided to truly test our implementation of mysh by having an interactive mode open an interactive mode that ran mysh in bash. Below is the result, which is what was expected.
 
-`$ ./mysh
+$ ./mysh
 Welcome to my shell!
 mysh> ./mysh
 Welcome to my shell!
@@ -303,4 +303,4 @@ mysh> exit
 mysh: exiting
 mysh> exit
 mysh: exiting
-$ `
+$ 
