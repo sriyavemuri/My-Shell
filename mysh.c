@@ -287,7 +287,7 @@ void execute_command(char **arg, char *inputf, char *outputf, int prev_fd, int n
             printf("mysh: Command failed with code %d\n", WIFEXITED(status));
         } 
         if WIFSIGNALED(status) {
-            psignal(WTERMSIG(status), "Terminated by signal:");
+            psignal(WTERMSIG(status), "Terminated by signal");
         }
     }
     return;
