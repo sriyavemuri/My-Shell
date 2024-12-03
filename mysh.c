@@ -229,6 +229,39 @@ void execute_builtin(char **arg) {
     }
 }
 
+char *resolve_command_path(const char *command) {
+    if (command == NULL) return NULL;
+
+    // If command is an absolute path, return it directly
+    if (command[0] == '/' || strstr(command, "./") == command) {
+        return strdup(command);
+    }
+
+    // Otherwise, search in PATH
+    const char *PATH = getenv("PATH");
+    if (!PATH) return NULL;
+
+    char *path_dup = strdup(PATH);
+    if (!path_dup) return NULL;
+
+    char *token = strtok(path_dup, ":");
+    while (token) {
+        char full_path[1024];
+        snprintf(full_path, sizeof(full_path), "%s/%s", token, command);
+
+        if (access(full_path, X_OK) == 0) { // Check if executable
+            free(path_dup);
+            return strdup(full_path);
+        }
+
+        token = strtok(NULL, ":");
+    }
+
+    free(path_dup);
+    return NULL; // Command not found
+}
+
+
 void execute_command(char **arg, char *inputf, char *outputf, int prev_fd, int next_fd) {
     if (arg[0] == NULL) return;
 
@@ -271,10 +304,17 @@ void execute_command(char **arg, char *inputf, char *outputf, int prev_fd, int n
             dup2(next_fd, STDOUT_FILENO);
             close(next_fd);
         }
+        
+         char *full_path = resolve_command_path(arg[0]);
+        if (!full_path) {
+            fprintf(stderr, "Command not found: %s\n", arg[0]);
+            exit(EXIT_FAILURE);
+        }
 
         // printf("Executing external command: %s\n", arg[0]);
-        execvp(arg[0], arg);
+        execv(full_path, arg);
         perror("Execution failed");
+        free(full_path);
         exit(EXIT_FAILURE);
     } else if (pid < 0) {
         perror("Fork failed");
