@@ -1,1 +1,1 @@
-cat batchoutput/nonexistent.txt | ./testcfiles/sumtest 10 20 > batchoutput/test7output.txt 2>&1
+cat testoutput/nonexistent.txt | ./testcfiles/sumtest 10 20 > testoutput/test7output.txt
